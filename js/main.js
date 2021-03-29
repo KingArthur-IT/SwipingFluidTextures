@@ -127,7 +127,10 @@ class Shaders{
 
             void main () {
                 vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
-                gl_FragColor = dissipation * texture2D(uSource, coord);
+                if ((vUv.x < 0.4 && vUv.x > 0.3) && (vUv.y < 0.7 && vUv.y > 0.6))
+                {gl_FragColor = vec4(1.0,1.0,0.0,0.0);}
+                else
+                    gl_FragColor = dissipation * texture2D(uSource, coord);
             }
         `;
         return advectionCode;
@@ -316,7 +319,6 @@ class Shaders{
 
     function Update () {
         resizeCanvas();
-
         gl.viewport(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
         shaders.advectionProgram.use();
