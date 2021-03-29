@@ -383,7 +383,7 @@ class Shaders{
     }   
 
     canvas.addEventListener('mousedown', onPointerDown);
-    canvas.addEventListener('touchstart', onPointerDown);
+    canvas.addEventListener('touchstart', onTouchDown);
 
     canvas.addEventListener('mousemove', (e) => {
         pointer.moved = pointer.down;
@@ -411,7 +411,18 @@ class Shaders{
 
     function onPointerDown () {
         pointer.down = true;
+        pointer.color = [Math.random(), Math.random(), Math.random()]; 
+    }
+    function onTouchDown (e) {
+        pointer.down = true;
         pointer.color = [Math.random(), Math.random(), Math.random()];
+
+        const touch = e.touches[0];
+        let x = touch.pageX;
+        let y = touch.pageY;
+
+        pointer.x = x;
+        pointer.y = y;        
     }
     function onPointerUp () {
         pointer.down = false;
