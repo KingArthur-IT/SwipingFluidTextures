@@ -364,6 +364,7 @@ class Shaders{
     let vortexSwipe = document.getElementById('vortexSwipe').checked;
     let vortexJet = document.getElementById('vortexJet').checked;
     let vortexInlet = document.getElementById('vortexInlet').checked;
+    let jetSpeed = gl.drawingBufferWidth > 600 ? 200.0 : 50.0;
 
     InitBodies();
     Update();
@@ -390,6 +391,7 @@ class Shaders{
         vortexSwipe = document.getElementById('vortexSwipe').checked;
         vortexJet = document.getElementById('vortexJet').checked;
         vortexInlet = document.getElementById('vortexInlet').checked;
+            
         if (pointer.moved && vortexSwipe)
         {
             shaders.spotProgram.use();
@@ -413,7 +415,7 @@ class Shaders{
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
             gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
             gl.uniform2f(shaders.spotProgram.uniforms.point, pointer.x / canvas.width, 1.0 - pointer.y / canvas.height);
-            gl.uniform3f(shaders.spotProgram.uniforms.color, 200.0, 0.0, 1.0); //
+            gl.uniform3f(shaders.spotProgram.uniforms.color, jetSpeed, 0.0, 1.0); //
             gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS);
             display(velocity.second[1]);
             velocity.swap();
@@ -429,7 +431,7 @@ class Shaders{
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
             gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
             gl.uniform2f(shaders.spotProgram.uniforms.point, 0.0, 0.1);
-            gl.uniform3f(shaders.spotProgram.uniforms.color, 200.0, 0.0, 1.0); //
+            gl.uniform3f(shaders.spotProgram.uniforms.color, jetSpeed, 0.0, 1.0); //
             gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS);
             display(velocity.second[1]);
             velocity.swap();
@@ -443,7 +445,7 @@ class Shaders{
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
             gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
             gl.uniform2f(shaders.spotProgram.uniforms.point, 0.0, 0.5);
-            gl.uniform3f(shaders.spotProgram.uniforms.color, 200.0, 0.0, 1.0); //
+            gl.uniform3f(shaders.spotProgram.uniforms.color, jetSpeed, 0.0, 1.0); //
             gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS);
             display(velocity.second[1]);
             velocity.swap();
@@ -457,7 +459,7 @@ class Shaders{
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
             gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
             gl.uniform2f(shaders.spotProgram.uniforms.point, 0.0, 0.9);
-            gl.uniform3f(shaders.spotProgram.uniforms.color, 200.0, 0.0, 1.0); //
+            gl.uniform3f(shaders.spotProgram.uniforms.color, jetSpeed, 0.0, 1.0); //
             gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS);
             display(velocity.second[1]);
             velocity.swap();
@@ -503,11 +505,13 @@ class Shaders{
     }
     
     function InitBodies() {
-        gl.viewport(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+        if (gl.drawingBufferWidth > 600) {
+            gl.viewport(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
-        shaders.initBodiesProgram.use();
-        gl.uniform1f(shaders.initBodiesProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
-        display(solidBodies[1]);        
+            shaders.initBodiesProgram.use();
+            gl.uniform1f(shaders.initBodiesProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
+            display(solidBodies[1]);
+        }
     }
 
     canvas.addEventListener('mousedown', onPointerDown);
@@ -554,13 +558,16 @@ class Shaders{
     }
     function onPointerUp () {
         pointer.down = false;
-    } 
-}())
-
-function resizeCanvas() {
+    }
+    
+    function resizeCanvas() {
         canvas.width  = innerWidth;
         canvas.height = innerHeight;
-}
-function clampDelta (delta) {
-        return delta * 10;
-}
+    }
+    function clampDelta(delta) {
+        if (gl.drawingBufferWidth > 600)
+            return delta * 10;
+        else
+            return delta * 5;
+    }
+}())
