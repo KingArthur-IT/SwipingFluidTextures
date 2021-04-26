@@ -5,23 +5,33 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
     <title>Fluid Dynamics</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-
-        canvas {
-            background-color: #000;
-        }
-    </style>
 </head>
 
 <body>
     <canvas id="canvas"></canvas>
+    <div class="controls-container">
+        <div class="box">
+            <input type="checkbox" name="pressureEffect" id="pressureEffect">
+            <span>Вихори "на воді"</span>
+        </div>
+        <div class="wrapper">
+            <div class="box">
+                <input type="radio" name="vortexRegime" id="vortexSwipe" checked="true">
+                <span>Створити вихор свайпом</span>
+            </div>
+            <div class="box">
+                <input type="radio" name="vortexRegime" id="vortexJet" >
+                <span>Створити струмінь</span>
+            </div>
+            <div class="box">
+                <input type="radio" name="vortexRegime" id="vortexInlet">
+                <span>Створити течію</span>
+            </div>
+        </div>
+        
+    </div>
     <script src="./js/main.js"></script>
 </body>
 

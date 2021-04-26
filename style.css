@@ -1,0 +1,33 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+canvas {
+  background-color: #000;
+}
+
+.controls-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: #fff;
+  padding: 2%;
+}
+
+.box {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 1%;
+}
+.box input {
+  margin-right: 10px;
+}
+
+.wrapper {
+  border: 1px solid rgba(100, 100, 100, 1);
+  padding: 1%;
+}

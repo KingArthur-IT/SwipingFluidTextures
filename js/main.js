@@ -36,6 +36,7 @@ class Shaders{
         let divergenceShader    = this.compileShader(this.gl.FRAGMENT_SHADER,this.divergenceShaderCode);
         let pressureShader      = this.compileShader(this.gl.FRAGMENT_SHADER,this.pressureShaderCode);
         let gradientShader      = this.compileShader(this.gl.FRAGMENT_SHADER,this.gradientShaderCode);
+        let initBodiesShader      = this.compileShader(this.gl.FRAGMENT_SHADER,this.solidBodiesShaderCode);
 
         this.displayProgram     = new GLProgram(this.gl, vertexShader, displayShader);
         this.spotProgram        = new GLProgram(this.gl, vertexShader, spotShader);
@@ -43,6 +44,7 @@ class Shaders{
         this.divergenceProgram  = new GLProgram(this.gl, vertexShader, divergenceShader);
         this.pressureProgram    = new GLProgram(this.gl, vertexShader, pressureShader);
         this.gradientProgram    = new GLProgram(this.gl, vertexShader, gradientShader);
+        this.initBodiesProgram    = new GLProgram(this.gl, vertexShader, initBodiesShader);
     }
     compileShader(type, source) {
         const shader = this.gl.createShader(type);
@@ -121,16 +123,59 @@ class Shaders{
             varying vec2 vUv;
             uniform sampler2D uVelocity;
             uniform sampler2D uSource;
+            uniform sampler2D uBodies;
             uniform vec2 texelSize;
             uniform float dt;
             uniform float dissipation;
 
             void main () {
                 vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
-                if ((vUv.x < 0.4 && vUv.x > 0.3) && (vUv.y < 0.7 && vUv.y > 0.6))
-                {gl_FragColor = vec4(0.1,0.1,0.1,0.0);}
+                if (texture2D(uBodies, vUv).x == 1.0)
+                {
+                    gl_FragColor = vec4(0.5,0.5,0.5,0.0);
+                }
                 else
                     gl_FragColor = dissipation * texture2D(uSource, coord);
+            }
+        `;
+        return advectionCode;
+    }
+    get solidBodiesShaderCode() {
+        const advectionCode = `
+            precision mediump float;
+
+            varying vec2 vUv;
+            uniform float aspectRatio;
+
+            void main () {
+                bool body = false;
+
+                //circe
+                float R = 0.03; vec2 center; center.x = 0.5; center.y = 0.5;
+                float distr = (vUv.x * aspectRatio - center.x) * (vUv.x * aspectRatio - center.x) +
+                    (vUv.y - center.y) * (vUv.y - center.y);
+
+                if (distr <= R*R)
+                    body = true;
+
+                //rect1
+                if ( (vUv.x < 0.4 && vUv.x > 0.3) && (vUv.y < 0.7 && vUv.y > 0.6) )
+                    body = true;
+
+                //rect2
+                if ( (vUv.x < 0.31 && vUv.x > 0.3) && (vUv.y < 0.5 && vUv.y > 0.3) )
+                    body = true;
+                
+                //rect3
+                if ( (vUv.x < 0.45 && vUv.x > 0.41) && (vUv.y < 0.5 && vUv.y > 0.3) )
+                    body = true;
+                
+                if (body)
+                {
+                    gl_FragColor = vec4(1.0,0.0,0.0,0.0);
+                }
+                else
+                    gl_FragColor = vec4(0.0,0.0,0.0,0.0);
             }
         `;
         return advectionCode;
@@ -301,6 +346,7 @@ class Shaders{
     let density    = createDoubleFBO(TEXTURE_WIDTH, TEXTURE_HEIGHT, gl.RGBA, halfFloat.HALF_FLOAT_OES, support_linear_float ? gl.LINEAR : gl.NEAREST);
     let velocity   = createDoubleFBO(TEXTURE_WIDTH, TEXTURE_HEIGHT, gl.RGBA, halfFloat.HALF_FLOAT_OES, support_linear_float ? gl.LINEAR : gl.NEAREST);
     let divergence = createFBO      (TEXTURE_WIDTH, TEXTURE_HEIGHT, gl.RGBA, halfFloat.HALF_FLOAT_OES, gl.NEAREST);
+    let solidBodies = createFBO      (TEXTURE_WIDTH, TEXTURE_HEIGHT, gl.RGBA, halfFloat.HALF_FLOAT_OES, gl.NEAREST);
     let pressure   = createDoubleFBO(TEXTURE_WIDTH, TEXTURE_HEIGHT, gl.RGBA, halfFloat.HALF_FLOAT_OES, gl.NEAREST);
 
     let shaders = new Shaders(gl);
@@ -314,10 +360,15 @@ class Shaders{
         moved: false,
         color: [0, 0, 0]
     }
+    let pressureEffect = document.getElementById('pressureEffect').checked;
+    let vortexSwipe = document.getElementById('vortexSwipe').checked;
+    let vortexJet = document.getElementById('vortexJet').checked;
+    let vortexInlet = document.getElementById('vortexInlet').checked;
 
+    InitBodies();
     Update();
 
-    function Update () {
+    function Update() {
         resizeCanvas();
         gl.viewport(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
@@ -325,6 +376,7 @@ class Shaders{
         gl.uniform2f(shaders.advectionProgram.uniforms.texelSize, 1.0 / TEXTURE_WIDTH, 1.0 / TEXTURE_HEIGHT);
         gl.uniform1i(shaders.advectionProgram.uniforms.uVelocity, velocity.first[2]);
         gl.uniform1i(shaders.advectionProgram.uniforms.uSource, velocity.first[2]);
+        gl.uniform1i(shaders.advectionProgram.uniforms.uBodies, solidBodies[2]);
         gl.uniform1f(shaders.advectionProgram.uniforms.dt, 0.016);
         gl.uniform1f(shaders.advectionProgram.uniforms.dissipation, VELOCITY_DISSIPATION);
         display(velocity.second[1]);
@@ -335,13 +387,77 @@ class Shaders{
         display(density.second[1]);
         density.swap();
 
-        if (pointer.moved)
+        vortexSwipe = document.getElementById('vortexSwipe').checked;
+        vortexJet = document.getElementById('vortexJet').checked;
+        vortexInlet = document.getElementById('vortexInlet').checked;
+        if (pointer.moved && vortexSwipe)
         {
             shaders.spotProgram.use();
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
             gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
             gl.uniform2f(shaders.spotProgram.uniforms.point, pointer.x / canvas.width, 1.0 - pointer.y / canvas.height);
             gl.uniform3f(shaders.spotProgram.uniforms.color, pointer.deltax, -pointer.deltay, 1.0); //интересный эффект с "-"
+            //gl.uniform3f(shaders.spotProgram.uniforms.color, -100.0, 0.0, 1.0); //интересный эффект с "-"
+            gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS);
+            display(velocity.second[1]);
+            velocity.swap();
+
+            gl.uniform1i(shaders.spotProgram.uniforms.uTarget, density.first[2]);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, pointer.color[0], pointer.color[1], pointer.color[2]);
+            display(density.second[1]);
+            density.swap();
+        }
+        if (pointer.down && vortexJet)
+        {
+            shaders.spotProgram.use();
+            gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
+            gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
+            gl.uniform2f(shaders.spotProgram.uniforms.point, pointer.x / canvas.width, 1.0 - pointer.y / canvas.height);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, 200.0, 0.0, 1.0); //
+            gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS);
+            display(velocity.second[1]);
+            velocity.swap();
+
+            gl.uniform1i(shaders.spotProgram.uniforms.uTarget, density.first[2]);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, pointer.color[0], pointer.color[1], pointer.color[2]);
+            display(density.second[1]);
+            density.swap();
+        }
+        if (vortexInlet)
+        {
+            shaders.spotProgram.use();
+            gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
+            gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
+            gl.uniform2f(shaders.spotProgram.uniforms.point, 0.0, 0.1);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, 200.0, 0.0, 1.0); //
+            gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS);
+            display(velocity.second[1]);
+            velocity.swap();
+
+            gl.uniform1i(shaders.spotProgram.uniforms.uTarget, density.first[2]);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, pointer.color[0], pointer.color[1], pointer.color[2]);
+            display(density.second[1]);
+            density.swap();
+
+            shaders.spotProgram.use();
+            gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
+            gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
+            gl.uniform2f(shaders.spotProgram.uniforms.point, 0.0, 0.5);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, 200.0, 0.0, 1.0); //
+            gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS);
+            display(velocity.second[1]);
+            velocity.swap();
+
+            gl.uniform1i(shaders.spotProgram.uniforms.uTarget, density.first[2]);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, pointer.color[0], pointer.color[1], pointer.color[2]);
+            display(density.second[1]);
+            density.swap();
+
+            shaders.spotProgram.use();
+            gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
+            gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
+            gl.uniform2f(shaders.spotProgram.uniforms.point, 0.0, 0.9);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, 200.0, 0.0, 1.0); //
             gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS);
             display(velocity.second[1]);
             velocity.swap();
@@ -357,7 +473,9 @@ class Shaders{
         gl.uniform1i(shaders.divergenceProgram.uniforms.uVelocity, velocity.first[2]);
         display(divergence[1]);
 
-        clear(pressure.first[1]); //fluid effect
+        pressureEffect = document.getElementById('pressureEffect').checked;
+        if (!pressureEffect)
+            clear(pressure.first[1]); //fluid effect
         shaders.pressureProgram.use();
         gl.uniform2f(shaders.pressureProgram.uniforms.texelSize, 1.0 / TEXTURE_WIDTH, 1.0 / TEXTURE_HEIGHT);
         gl.uniform1i(shaders.pressureProgram.uniforms.uDivergence, divergence[2]);
@@ -382,7 +500,15 @@ class Shaders{
         pointer.moved = false;
 
         requestAnimationFrame(Update);
-    }   
+    }
+    
+    function InitBodies() {
+        gl.viewport(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+
+        shaders.initBodiesProgram.use();
+        gl.uniform1f(shaders.initBodiesProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
+        display(solidBodies[1]);        
+    }
 
     canvas.addEventListener('mousedown', onPointerDown);
     canvas.addEventListener('touchstart', onTouchDown);
