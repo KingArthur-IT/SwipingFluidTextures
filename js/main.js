@@ -427,6 +427,7 @@ class Shaders{
         }
         if (vortexInlet)
         {
+            /*
             shaders.spotProgram.use();
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
             gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
@@ -437,24 +438,26 @@ class Shaders{
             velocity.swap();
 
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, density.first[2]);
-            gl.uniform3f(shaders.spotProgram.uniforms.color, pointer.color[0], pointer.color[1], pointer.color[2]);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, 0.0, 0.0, 0.0);
             display(density.second[1]);
             density.swap();
+            */
 
             shaders.spotProgram.use();
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
             gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
             gl.uniform2f(shaders.spotProgram.uniforms.point, 0.0, 0.5);
             gl.uniform3f(shaders.spotProgram.uniforms.color, jetSpeed, 0.0, 1.0); //
-            gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS);
+            gl.uniform1f(shaders.spotProgram.uniforms.radius, SPOT_RADIUS * 2);
             display(velocity.second[1]);
             velocity.swap();
 
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, density.first[2]);
-            gl.uniform3f(shaders.spotProgram.uniforms.color, pointer.color[0], pointer.color[1], pointer.color[2]);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, 0.0, 0.0, 0.0);
             display(density.second[1]);
             density.swap();
 
+            /*
             shaders.spotProgram.use();
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, velocity.first[2]);
             gl.uniform1f(shaders.spotProgram.uniforms.aspectRatio, TEXTURE_WIDTH / TEXTURE_HEIGHT);
@@ -465,9 +468,10 @@ class Shaders{
             velocity.swap();
 
             gl.uniform1i(shaders.spotProgram.uniforms.uTarget, density.first[2]);
-            gl.uniform3f(shaders.spotProgram.uniforms.color, pointer.color[0], pointer.color[1], pointer.color[2]);
+            gl.uniform3f(shaders.spotProgram.uniforms.color, 0.0, 0.0, 0.0);
             display(density.second[1]);
             density.swap();
+            */
         }
         
         shaders.divergenceProgram.use();
